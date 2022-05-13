@@ -12,6 +12,7 @@ os: win
 description: converts Photoshop's ScriptingListenerJS.log into human-readable python code. The ScriptingListenerJS.log file is usually saved to your desktop 
 The ScriptingListenerJSJs2Py.py file will also be saved to the same location as the log file
 '''
+import os
 import sys
 import re
 from functools import wraps
@@ -38,20 +39,12 @@ def msg(txt, prettify=None):
 
 # VALUE
 class BaseValueError(ValueError): pass
-
-
 class ActionNameNotSetError(BaseValueError):pass
-
-
 class DescriptorNameNotValidError(BaseValueError):pass
-
-
 class ConvertIdConversionTypeError(BaseValueError):pass
 
 # ATTRIBUTE
 class BaseAttributeError(AttributeError): pass
-
-
 class ContentNotLoadedError(ValueError): pass    
 
 
@@ -394,9 +387,9 @@ class ScriptLogParser(object):
 
     def _descriptor_getter(self, variable, descriptor):
         return {
-            "ActionDescriptor": f'{variable} = Dispatch("Photoshop.ActionDescriptor")',
-            "ActionReference": f'{variable} = Dispatch("Photoshop.ActionReference")',
-            "ActionList": f'{variable} = Dispatch("Photoshop.ActionList")',
+            "ActionDescriptor": f'{variable} = ps.ActionDescriptor()',
+            "ActionReference": f'{variable} = ps.ActionReference()',
+            "ActionList": f'{variable} = ps.ActionList()',
         }.get(descriptor, None)
 
     def _convert_descriptor(self, line):
@@ -542,7 +535,7 @@ class ScriptLogParser(object):
                 if ".Put" in converted_line:
                     collected_datatypes.append(converted_line)
 
-                if "Dispatch(" in converted_line:
+                if "ps.A" in converted_line:
                     collected_descriptors.append(converted_line)
                 count += 1
 
@@ -559,41 +552,45 @@ class ScriptLogParser(object):
             export_file = file.write
         # start py doc boilerplate code and indenting
         export_file(Indenter().style(f'"""'))
-        export_file(Indenter().style("Photoshop ScriptListenerJS to Pyhton"))
+        export_file(Indenter().style("Photoshop ScriptListenerJS to Python"))
         # list function names if true
         if names:
             export_file(Indenter().style("- Overview functions"))
             export_file(Indenter().style(f"- {names}"))
         export_file(Indenter().style('"""'))
         # imports
-        export_file(Indenter().style("from win32com.client import Dispatch"))
-        export_file(Indenter().style(""))
-        export_file(Indenter().style(""))
+        export_file(Indenter().style("import photoshop.api as ps"))
+        # export_file(Indenter().style(""))
+        # export_file(Indenter().style(""))
         # global app reference
-        export_file(Indenter().style('app = Dispatch("Photoshop.Application")'))
+        export_file(Indenter().style('app = ps.Application()'))
+        export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required string to type id converter function
         export_file(Indenter().style("def s(name):"))
         with Indenter() as indent:
-            export_file(indent.style("'''convert string name into type id'''"))    
+            export_file(indent.style('"""convert string name into type id"""'))
             export_file(indent.style('return app.StringIDToTypeID(f"{name}")'))  
+        export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required charid to type id converter function
         export_file(Indenter().style("def c(name):"))
         with Indenter() as indent:
-            export_file(indent.style("'''convert char name into type id'''"))        
+            export_file(indent.style('"""convert char name into type id"""'))
             export_file(indent.style('return app.CharIDToTypeID(f"{name}")'))
+        export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required dialog constants
         export_file(Indenter().style('def ps_display_dialogs():'))
         with Indenter() as indent:
-            export_file(indent.style("'''Dictionary with dialog constants'''"))    
+            export_file(indent.style('"""Dictionary with dialog constants"""'))
             export_file(indent.style('return {"all": 1, "error": 2, "no": 3}'))    
+        export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required dialog function
         export_file(Indenter().style('def dialog(dialog_type="no"):'))
         with Indenter() as indent:
-            export_file(indent.style("'''Photoshop dialog windows settings using \"all\": 1, \"error\": 2, \"no\": 3'''"))    
+            export_file(indent.style('"""Photoshop dialog windows settings using \"all\": 1, \"error\": 2, \"no\": 3"""'))
             export_file(indent.style('dialogs = ps_display_dialogs()'))    
             export_file(indent.style('return dialogs.get(dialog_type, lambda: None)'))
         export_file(Indenter().style(""))
@@ -637,10 +634,10 @@ def main(log_file_path=None):
     # loads essential entries only
     log = ScriptLogLoader(log_file_path)
     log.load()
-    log_file_folder = log.folder()
+    log_file_folder = os.getcwd()
     log_file_name = log.file_name()
     new_file_name = f'{log_file_name}_Js2Py.py'
-    new_file_path = log_file_folder.joinpath(new_file_name)
+    new_file_path = os.path.join(log_file_folder, new_file_name)
     content = log.content()
   
     # transpile to python
