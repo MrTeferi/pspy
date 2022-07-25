@@ -380,7 +380,7 @@ class ScriptLogParser(object):
                         values[idx] = link
                 if prop in self._vars:
                     if prop == "idnull":
-                        self._vars[prop] = 's("target")'
+                        self._vars[prop] = 'sID("target")'
                     values[idx] = self._vars[prop]
             value_prop2string = ", ".join(values)
             return f"{descriptor}.{datatype_converted}({value_prop2string})"
@@ -443,12 +443,12 @@ class ScriptLogParser(object):
             func = match_var_id.group(2)
             id_string = match_var_id.group(3)
             id_string = id_string.replace('"', "")
-            convert_func = 's'
+            convert_func = 'sID'
 
             if func.startswith("charID"):
                 id_value = self._c2s(id_string)
                 if id_value == '':
-                    convert_func = 'c'
+                    convert_func = 'cID'
                     id_value = id_string
             elif func.startswith("stringID"):
                 id_value = id_string
@@ -567,14 +567,14 @@ class ScriptLogParser(object):
         export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required string to type id converter function
-        export_file(Indenter().style("def s(name):"))
+        export_file(Indenter().style("def sID(name):"))
         with Indenter() as indent:
             export_file(indent.style('"""convert string name into type id"""'))
             export_file(indent.style('return app.StringIDToTypeID(f"{name}")'))  
         export_file(Indenter().style(""))
         export_file(Indenter().style(""))
         # required charid to type id converter function
-        export_file(Indenter().style("def c(name):"))
+        export_file(Indenter().style("def cID(name):"))
         with Indenter() as indent:
             export_file(indent.style('"""convert char name into type id"""'))
             export_file(indent.style('return app.CharIDToTypeID(f"{name}")'))
